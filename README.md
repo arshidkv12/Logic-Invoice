@@ -1,6 +1,6 @@
-# Logic Invoice
+# Logic Invoice (Updated - 2022)
 
-Logic Invoice is an open source accounting and invoicing solution built with PHP. For more information, visit http://www.logicinvoice.com
+Logic Invoice is an open source accounting and invoicing solution built with PHP.
 
 ## Requirements
 
