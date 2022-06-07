@@ -4,7 +4,8 @@
  * @description Main Object used
  */
 abstract class VQMod {
-	public static $_vqversion = '2.5.1';						// Current version number
+
+	public static $_vqversion = '2.6.7';						// Current version number
 
 	private static $_modFileList = array();						// Array of xml files
 	private static $_mods = array();							// Array of modifications to apply
@@ -117,7 +118,7 @@ abstract class VQMod {
 			return $sourceFile;
 		}
 
-		$stripped_filename = preg_replace('~^' . preg_quote(self::getCwd(), '~i') . '~', '', $sourcePath);
+		$stripped_filename = preg_replace('~^' . preg_quote(self::getCwd(), '~') . '~i', '', $sourcePath);
 		$cacheFile = self::_cacheName($stripped_filename);
 		$file_last_modified = filemtime($sourcePath);
 
@@ -149,6 +150,12 @@ abstract class VQMod {
 			}
 		} else {
 			file_put_contents(self::path(self::$checkedCache, true), $stripped_filename . PHP_EOL, FILE_APPEND | LOCK_EX);
+			
+			// Prevent checked.cache file from duplicating lines when checked folder is above vqmod directory - Thanks adrianolmedo
+			$lines = file(self::path(self::$checkedCache, true));
+			$lines = array_unique($lines);
+			file_put_contents(self::path(self::$checkedCache, true), implode($lines));
+			
 			self::$_doNotMod[] = $sourcePath;
 		}
 
@@ -410,13 +417,13 @@ abstract class VQMod {
 			$return = true;
 			$modParts = explode('/', $modFilePath);
 			$checkParts = explode('/', $checkFilePath);
-			
+
 			if(count($modParts) !== count($checkParts)) {
 				 $return = false;
 			} else {
 
 				$toCheck = array_diff_assoc($modParts, $checkParts);
-				
+
 				foreach($toCheck as $k => $part) {
 					if($part === '*') {
 						continue;
@@ -641,6 +648,15 @@ class VQModObject {
 			$tmp = $this->_explodeData($tmp);
 			$lineMax = count($tmp) - 1;
 
+			// <add> tag attributes - Override <search> attributes if set
+			foreach(array_keys((array)$mod['search']) as $key) {
+				if ($key == "\x0VQNode\x0_content") { continue; }
+				if ($key == "trim") { continue; }
+				if (isset($mod['add']->$key) && $mod['add']->$key) {
+					$mod['search']->$key = $mod['add']->$key;
+				}
+			}
+
 			switch($mod['search']->position) {
 				case 'top':
 				$tmp[$mod['search']->offset] =  $mod['add']->getContent() . $tmp[$mod['search']->offset];
@@ -672,7 +688,7 @@ class VQModObject {
 							if($mod['error'] == 'log' || $mod['error'] == 'abort' ) {
 								VQMod::$log->write('VQModObject::applyMod - INVALID REGEX ERROR - ' . $mod['search']->getContent(), $this);
 							}
-							continue 2;
+							break 2;
 						} elseif($pos == 0) {
 							$pos = false;
 						}
@@ -852,7 +868,7 @@ class VQModObject {
 	/**
 	 * VQModObject::_explodeData()
 	 *
-	 * @param string $data File contents
+	 * @param string $data file contents
 	 * @return string
 	 * @description Splits a file into an array of individual lines
 	 */
@@ -877,8 +893,8 @@ class VQModObject {
  * @description Basic node object blueprint
  */
 class VQNode {
+	public $regex = 'false';
 	public $trim = 'false';
-
 	private $_content = '';
 
 	/**
@@ -950,4 +966,9 @@ class VQSearchNode extends VQNode {
  * @description Object for the <add> xml tags
  */
 class VQAddNode extends VQNode {
+	public $position = false;
+	public $offset = false;
+	public $index = false;
+	public $regex = false;
+	public $trim = 'false';
 }

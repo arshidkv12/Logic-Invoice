@@ -12,7 +12,7 @@ class DB {
 
             $this->db = new $class($hostname, $username, $password, $database);
         } else {
-            exit('Error: Could not load database file ' . $driver . '!');
+            exit('Error: Could not load database file ' . $type . '.php !');
         }
     }
 
